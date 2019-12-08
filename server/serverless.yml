@@ -1,0 +1,27 @@
+service: aws-auth0-test
+provider:
+  name: aws
+  runtime: nodejs8.10
+  stage: dev
+  region: ap-northeast-1
+
+functions:
+  authorizer:
+    handler: handler.authorizer
+    memorySize: 3008
+
+  test:
+    handler: handler.test
+    events:
+      - http:
+          path: test
+          method: get
+          cors: true
+          authorizer:
+            arn: arn:aws:lambda:ap-northeast-1:0000000000:function:aws-auth0-test-dev-authorizer
+            resultTtlInSeconds: 0
+            identitySource: method.request.header.Authorization
+            identityValidationExpression: '^Bearer [-0-9a-zA-Z\._]*$'
+            type: token 
+    #environment:
+    #  variable2: value2
