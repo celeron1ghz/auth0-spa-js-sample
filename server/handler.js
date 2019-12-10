@@ -3,7 +3,6 @@
 const jwksClient = require('jwks-rsa');
 const jwt = require('jsonwebtoken');
 const util = require('util');
-const request = require('request-promise');
 
 const AUTH0_DOMAIN  = 'https://xxxxxx.auth0.com/';
 const JKWS_URL      = AUTH0_DOMAIN + '.well-known/jwks.json';
@@ -38,36 +37,33 @@ const jwtOptions = {
 module.exports.authorizer = async (event) => {
   const tokenString = event.authorizationToken;
   if (!tokenString) {
-      throw new Error('authorizationToken is empty');
+    throw new Error('authorizationToken is empty');
   }
 
   const match = tokenString.match(/^Bearer (.*)$/);
   if (!match || match.length < 2) {
-      throw new Error(`authorizationToken format fail: ${tokenString}`);
+    throw new Error(`authorizationToken format fail: ${tokenString}`);
   }
 
   const token = match[1];
   const decoded = jwt.decode(token, { complete: true });
   if (!decoded || !decoded.header || !decoded.header.kid) {
-      throw new Error('jwt verify fail');
+    throw new Error('jwt verify fail');
   }
-
-  // getting auth0's user info
-  const userInfo = await request({
-    uri: JWT_AUDIENCE,
-    headers: {
-      'Authorization': 'Bearer ' + token,
-      'User-Agent': 'Auth0'
-    }
-  })
-  .then(data => JSON.parse(data));
 
   return getSigningKey(decoded.header.kid)
     .then(key => {
       const signingKey = key.publicKey || key.rsaPublicKey;
-      return jwt.verify(token, signingKey, jwtOptions);
+      const ret = jwt.verify(token, signingKey, jwtOptions);
+      return ret;
     })
     .then(decoded => {
+      const userInfo = {
+        permissions: decoded.permissions,
+        twitter: decoded['https://twitter.com'],
+      };
+
+      //console.log(decoded)
       const serialized = Buffer.from(JSON.stringify(userInfo)).toString('base64');
 
       return {
@@ -89,6 +85,7 @@ module.exports.test = async (event) => {
   const userInfo = JSON.parse(jsonString);
 
   console.log(userInfo);
+  console.log(ctx.integrationLatency);
   
   return {
     statusCode: 200,
