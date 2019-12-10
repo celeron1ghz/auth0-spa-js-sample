@@ -5,7 +5,6 @@
   "license": "MIT",
   "dependencies": {
     "jsonwebtoken": "^8.5.1",
-    "jwks-rsa": "^1.6.0",
-    "request-promise": "^4.2.5"
+    "jwks-rsa": "^1.6.0"
   }
 }
